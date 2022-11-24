@@ -108,15 +108,16 @@ int main()
         while (1)
         {
             ///#################### GETTING COURSE DETAILS ########################//
-            char courseCode[100];
+            char courseCode[1000];
             char category[100];
-            char isMultiple[100];
+            char isMultiple[1000];
             printf("Please enter the course code to query: ");
 
             fgets(courseCode, MAX_NAME_SZ, stdin);
             if ((strlen(courseCode) > 0) && (courseCode[strlen(courseCode) - 1] == '\n'))
                 courseCode[strlen(courseCode) - 1] = '\0';
 
+            printf("coursecode --- %s", courseCode);
             bzero(buffer, 1024);
             strcpy(buffer, "TRUE");
             send(sock, buffer, strlen(buffer), 0);
@@ -133,7 +134,7 @@ int main()
             recv(sock, buffer, sizeof(buffer), 0);
             if (!strcmp(buffer, "MULTIPLE"))
             {
-                printf("Multiple request from client\n");
+                printf("%s sent a request with multiple CourseCode to the main server.\n", user);
                 strcpy(isMultiple, buffer);
                 bzero(buffer, 1024);
                 strcpy(buffer, "OK");
@@ -157,24 +158,33 @@ int main()
                 bzero(buffer, 1024);
                 strcpy(buffer, category);
                 send(sock, buffer, strlen(buffer), 0);
-                printf("%s sent a query request to the main server.\n", user);
+                printf("%s sent a request to the main server.\n", user);
             }
             // printf("Please enter the category(Credit/ Professor/ Days/ CourseName): ");
 
             /// Receiving course info from serverM
             bzero(buffer, 1024);
             recv(sock, buffer, sizeof(buffer), 0);
-
+            // printf("%c----", buffer[0]);
+            printf("The client received the response from the Main server using TCP over port %d.\n", port);
             if (!strcmp(isMultiple, "MULTIPLE"))
             {
-                printf("The course information has been founded:\nCourseCode: Credits, Professor, Days, Course Name\n%s\n", buffer);
+                printf("CourseCode: Credits, Professor, Days, Course Name\n%s\n", buffer);
             }
             else
             {
-                printf("The course information has been founded:\nThe %s of %s is %s\n", category, courseCode, buffer);
+                if (buffer[0] == '!')
+                {
+                    buffer[0] = ' ';
+                    printf("%s.\n", buffer);
+                }
+                else
+                {
+                    printf("The %s of %s is %s.\n", category, courseCode, buffer);
+                }
             }
 
-            printf("\n\n---------------------Start a new request---------------------\n");
+            printf("\n-----Start a new request-----\n");
         }
     }
 

@@ -83,14 +83,14 @@ int main(void)
         recvfrom(csSock, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_addr, &addr_size);
         char givenCode[100];
         strcpy(givenCode, buffer);
-        printf("  received %s-\n", buffer);
+        // printf("  received %s-\n", buffer);
         char returnVal[100];
 
         if (!strcmp(buffer, "MULTIPLE"))
         {
             bzero(buffer, 1024);
             addr_size = sizeof(client_addr);
-            printf("here..");
+            // printf("here..");
             recvfrom(csSock, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_addr, &addr_size);
             char givenCode[100];
             int found = 0;
@@ -100,12 +100,22 @@ int main(void)
             {
                 if (!strcmp(givenCode, code[i]))
                 {
-                    strcpy(returnVal, data[i]);
+                    // strcpy(returnVal, data[i]);
+                    strcpy(returnVal, code[i]);
+                    strcat(returnVal, ": ");
+                    strcat(returnVal, credits[i]);
+                    strcat(returnVal, ", ");
+                    strcat(returnVal, prof[i]);
+                    strcat(returnVal, ", ");
+                    strcat(returnVal, time[i]);
+                    strcat(returnVal, ", ");
+                    strcat(returnVal, name[i]);
                     found = 1;
                 }
             }
             if (found == 0)
             {
+                printf("Didn't find the course: %s.\n", givenCode);
                 strcpy(returnVal, "Didn't find the course: ");
                 strcat(returnVal, givenCode);
             }
@@ -115,7 +125,7 @@ int main(void)
         {
             bzero(buffer, 1024);
             addr_size = sizeof(client_addr);
-            printf("here..");
+            // printf("here..");
             recvfrom(csSock, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_addr, &addr_size);
             char givenCode[100];
             strcpy(givenCode, buffer);
@@ -129,6 +139,7 @@ int main(void)
             printf("The ServerCS received a request from the Main Server about the %s of %s.\n", givenCtgry, givenCode);
 
             int idx = -1;
+            int cat = 1;
 
             for (int i = 0; i < line; i++)
             {
@@ -158,16 +169,21 @@ int main(void)
                 }
                 else
                 {
+                    cat = -1;
                     printf("Didn't find the category: %s.\n", givenCtgry);
-                    strcpy(returnVal, "Didn't find the category: ");
+                    strcpy(returnVal, "!Didn't find the category: ");
                     strcat(returnVal, givenCtgry);
                 }
             }
             else
             {
                 printf("Didn't find the course: %s.\n", givenCode);
-                strcpy(returnVal, "Didn't find the course: ");
+                strcpy(returnVal, "!Didn't find the course: ");
                 strcat(returnVal, givenCode);
+            }
+            if (idx != -1 && cat != -1)
+            {
+                printf("The course information has been found: The %s of %s is %s", givenCtgry, givenCode, returnVal);
             }
         }
         bzero(buffer, 1024);
