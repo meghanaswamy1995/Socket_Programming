@@ -107,6 +107,7 @@ int main()
     {
         while (1)
         {
+            printf("Starting newwwwww");
             ///#################### GETTING COURSE DETAILS ########################//
             char courseCode[1000];
             char category[100];
@@ -117,7 +118,7 @@ int main()
             if ((strlen(courseCode) > 0) && (courseCode[strlen(courseCode) - 1] == '\n'))
                 courseCode[strlen(courseCode) - 1] = '\0';
 
-            printf("coursecode --- %s", courseCode);
+            // printf("coursecode --- %s", courseCode);
             bzero(buffer, 1024);
             strcpy(buffer, "TRUE");
             send(sock, buffer, strlen(buffer), 0);
@@ -134,6 +135,16 @@ int main()
             recv(sock, buffer, sizeof(buffer), 0);
             if (!strcmp(buffer, "MULTIPLE"))
             {
+                printf("Receiving the ...");
+                bzero(buffer, 1024);
+                recv(sock, buffer, sizeof(buffer), 0);
+                if (buffer[0] == '!')
+                {
+                    buffer[0] = ' ';
+                    printf("%s", buffer);
+                    goto newQ;
+                }
+
                 printf("%s sent a request with multiple CourseCode to the main server.\n", user);
                 strcpy(isMultiple, buffer);
                 bzero(buffer, 1024);
@@ -184,6 +195,7 @@ int main()
                 }
             }
 
+        newQ:
             printf("\n-----Start a new request-----\n");
         }
     }

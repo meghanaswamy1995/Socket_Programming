@@ -205,7 +205,7 @@ int main()
             strcpy(returnResult, "");
             bzero(buffer, 1024);
             recv(client_sock, buffer, sizeof(buffer), 0);
-            printf("buffer isssss %s---%ld---\n", buffer, strlen(buffer));
+            // printf("buffer isssss %s---%ld---\n", buffer, strlen(buffer));
 
             if (strlen(buffer) <= 0)
             {
@@ -217,41 +217,40 @@ int main()
                 printf("not ture\n");
                 break;
             }
-            // if (!strcmp(buffer, " "))
-            // {
-            //     break;
-            // }
+            if (!strcmp(buffer, " "))
+            {
+                break;
+            }
 
-            printf("After if stt ----");
+            // printf("After if stt ----");
             //******** Authenticate
             bzero(buffer, 1024);
 
             strcpy(buffer, "ok");
-            printf("buffer before send %s", buffer);
+
             send(client_sock, buffer, strlen(buffer), 0);
-            printf("%s", buffer);
+
             //******* GETCOURSE
             bzero(buffer, 1024);
             recv(client_sock, buffer, sizeof(buffer), 0);
-            printf("%s", buffer);
+            // printf("%s", buffer);
             char course[strlen(buffer)];
             char crs[strlen(buffer)];
             strcpy(course, buffer);
 
             strcpy(crs, course);
-            printf("coursecode is %s\n", course);
+
             int field = 0;
             char allCode[100][100];
-            printf("coursecode is ...%s\n", crs);
+
             char *token = strtok(crs, " ");
-            printf("coursecode is %s\n", course);
+
             while (token)
             {
                 strcpy(allCode[field++], token);
                 token = strtok(NULL, " ");
-                printf(" ttttooookkkkeeennn %s.", token);
             }
-            printf("len of filed - %d\n", field);
+            // printf("len of filed - %d\n", field);
 
             // ################################  IF SINGLE ENTRY ################################
             if (field < 2)
@@ -317,7 +316,7 @@ int main()
                     socklen_t add_size = sizeof(serverEE_addr);
                     bzero(buffer, 1024);
                     recvfrom(serverEE_sock, buffer, 1024, 0, (struct sockaddr *)&serverEE_addr, &add_size);
-                    printf("%s\n", buffer);
+                    // printf("%s\n", buffer);
 
                     strcpy(returnResult, buffer);
 
@@ -367,15 +366,32 @@ int main()
             {
                 strcpy(returnResult, "");
 
+                // send(client_sock, field, 4, 0);
                 ///******** send Multiple to client
                 bzero(buffer, 1024);
                 strcpy(buffer, "MULTIPLE");
                 send(client_sock, buffer, strlen(buffer), 0);
+
+                if (field > 10)
+                {
+                    bzero(buffer, 1024);
+                    strcpy(buffer, "!More than 10 courses are queried not possible. Please enter less than 10 courseCodes to query at a time\n");
+                    send(client_sock, buffer, strlen(buffer), 0);
+                    // strcat(returnResult, "!More than 10 courses are queried not possible. Please enter less than 10 courseCodes to query at a time\n");
+                    break;
+                }
+                else
+                {
+                    bzero(buffer, 1024);
+                    strcpy(buffer, "ok");
+                    printf("sending okkkkkkk");
+                    send(client_sock, buffer, strlen(buffer), 0);
+                }
                 /// ****** Client Authenticate
                 bzero(buffer, 1024);
                 recv(client_sock, buffer, sizeof(buffer), 0);
 
-                printf("here.. %s - --", allCode[1]);
+                // printf("here.. %s - --", allCode[1]);
 
                 for (int i = 0; i < field; i++)
                 {
@@ -449,7 +465,7 @@ int main()
             }
             bzero(buffer, 1024);
             strcpy(buffer, returnResult);
-            // printf(" %s  ", returnResult);
+            printf(" %s----  ", returnResult);
             send(client_sock, buffer, strlen(buffer), 0);
             printf("The main server sent the query information to the client.\n");
 
