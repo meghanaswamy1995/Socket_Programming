@@ -201,6 +201,7 @@ int main()
 
         while (1)
         {
+            printf("newwwwwww req..");
             char returnResult[1000];
             strcpy(returnResult, "");
             bzero(buffer, 1024);
@@ -395,7 +396,7 @@ int main()
 
                 for (int i = 0; i < field; i++)
                 {
-                    printf("%s - --", allCode[i]);
+                    printf("%s ----", allCode[i]);
 
                     char dept[3];
                     size_t j;

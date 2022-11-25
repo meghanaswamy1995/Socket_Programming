@@ -113,19 +113,21 @@ int main()
             char category[100];
             char isMultiple[1000];
             printf("Please enter the course code to query: ");
-
+            printf("lol.......");
             fgets(courseCode, MAX_NAME_SZ, stdin);
+            printf("here.. ");
+
             if ((strlen(courseCode) > 0) && (courseCode[strlen(courseCode) - 1] == '\n'))
                 courseCode[strlen(courseCode) - 1] = '\0';
 
-            // printf("coursecode --- %s", courseCode);
+            printf("coursecode --- %s", courseCode);
             bzero(buffer, 1024);
             strcpy(buffer, "TRUE");
             send(sock, buffer, strlen(buffer), 0);
 
             bzero(buffer, 1024);
             recv(sock, buffer, sizeof(buffer), 0);
-            // printf("%s", buffer);
+            printf("%s....", buffer);
 
             bzero(buffer, 1024);
             strcpy(buffer, courseCode);
@@ -135,6 +137,7 @@ int main()
             recv(sock, buffer, sizeof(buffer), 0);
             if (!strcmp(buffer, "MULTIPLE"))
             {
+                strcpy(isMultiple, buffer);
                 printf("Receiving the ...");
                 bzero(buffer, 1024);
                 recv(sock, buffer, sizeof(buffer), 0);
@@ -142,11 +145,12 @@ int main()
                 {
                     buffer[0] = ' ';
                     printf("%s", buffer);
-                    goto newQ;
+                    printf("\n-----Start a new request-----\n");
+                    continue;
                 }
 
                 printf("%s sent a request with multiple CourseCode to the main server.\n", user);
-                strcpy(isMultiple, buffer);
+
                 bzero(buffer, 1024);
                 strcpy(buffer, "OK");
                 send(sock, buffer, strlen(buffer), 0);
@@ -195,7 +199,6 @@ int main()
                 }
             }
 
-        newQ:
             printf("\n-----Start a new request-----\n");
         }
     }
