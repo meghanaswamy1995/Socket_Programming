@@ -4,12 +4,12 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-#define MAX_LINES 100
-#define MAX_LEN 1000
+#define MAX_LINES 1000
+#define MAX_LEN 5000
 
 int main(void)
 {
-
+    //########################## Reading the cred.txt file and storing all the entries into the datastructure ######################
     FILE *file;
     char data[MAX_LINES][MAX_LEN];
     file = fopen("cred.txt", "r");
@@ -20,14 +20,10 @@ int main(void)
     }
     int line = 0;
     char *entry;
-    while (!feof(file) && !ferror(file))
+    while (!feof(file) && !ferror(file)) // Read all the lines and store it in the array data[]
     {
-        // if (fgets(entry, MAX_LEN, file) != NULL)
-        //     line++;
         if (fgets(data[line], MAX_LEN, file) != NULL)
             line++;
-        // data[line][strcspn(data[line], "\n")] = 0;
-        //  data[line] = *entry;
     }
     fclose(file);
 
@@ -35,14 +31,13 @@ int main(void)
     {
         if ((strlen(data[i]) > 0) && (data[i][strlen(data[i]) - 1] == '\n'))
         {
-            // printf("last char-%d", strlen(data[i]));
             data[i][strlen(data[i]) - 2] = '\0';
         }
-        // printf("----printng all contenst :%s", data[i]);
     }
 
+    /////#################################### Creating socket  #######################################
     char *ip = "127.0.0.1";
-    int port = 21173;
+    int credPort = 21173;
 
     int cSock;
     struct sockaddr_in server_addr, client_addr;
@@ -56,11 +51,11 @@ int main(void)
         perror("[-]Socket error");
         exit(1);
     }
-    // printf("[+]UDP server socket created.\n");
+    // printf("UDP server socket created.\n");
 
     memset(&server_addr, '\0', sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = port;
+    server_addr.sin_port = credPort;
     server_addr.sin_addr.s_addr = inet_addr(ip);
 
     n = bind(cSock, (struct sockaddr *)&server_addr, sizeof(server_addr));
@@ -69,14 +64,19 @@ int main(void)
         perror("[-]Bind error");
         exit(1);
     }
-    // printf("[+]Bind to the port number: %d\n", port);
-    printf("The ServerC is up and running using UDP on port %d.\n", port);
+
+    printf("The ServerC is up and running using UDP on port %d.\n", credPort);
+
+    //////############################### READY TO RECEIVE DATA ###############################
+
     while (1)
     {
         int count1 = 3;
         int authenticated1 = 0;
         while (count1 > 0 && !authenticated1)
         {
+
+            /// Receive username
             bzero(buffer, 1024);
             addr_size = sizeof(client_addr);
             recvfrom(cSock, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_addr, &addr_size);
@@ -85,17 +85,16 @@ int main(void)
                 break;
             }
             char givenUser[100];
-            // printf("Username received %s-\n", buffer);
+
             strcpy(givenUser, buffer);
             printf("The ServerC received an authentication request from the Main Server.\n");
 
+            /// Reveive password
             bzero(buffer, 1024);
             recvfrom(cSock, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_addr, &addr_size);
-            // printf("passreceived %s-\n", buffer);
+
             char givenPass[100];
             strcpy(givenPass, buffer);
-            // printf("given pass - %s\n", buffer);
-
             int authStat = 0;
             char authStatus[100];
             strcpy(authStatus, "FAIL_NO_USER");
@@ -106,13 +105,12 @@ int main(void)
                 char username[100];
                 strcpy(username, data[i]);
                 char *passwd;
-                // printf("UU - %s PASSS - %s", ll, ptr);
                 strtok_r(username, ",", &passwd);
-                if (!strcmp(username, gt))
+                if (!strcmp(username, gt)) /// check if the given username matches the credentials list
                 {
                     authStat = 1;
                     strcpy(authStatus, "FAIL_NO_PASS");
-                    if (!strcmp(passwd, givenPass))
+                    if (!strcmp(passwd, givenPass)) /// check if ppassword matches if the username matches
                     {
                         strcpy(authStatus, "PASS");
                         break;
@@ -120,9 +118,9 @@ int main(void)
                 }
             }
 
+            /// send the status of the authentication to the main Server
             bzero(buffer, 1024);
             strcpy(buffer, authStatus);
-            // printf("sending buffer %s\n", buffer);
             sendto(cSock, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_addr, sizeof(client_addr));
 
             count1 -= 1;

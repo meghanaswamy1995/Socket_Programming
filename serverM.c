@@ -9,8 +9,11 @@ int main()
 {
 
     char *ip = "127.0.0.1";
-    int port = 25173;
+    int portTCP = 25173;
     int portUdp = 24173;
+    int eePort = 23173;
+    int csPort = 22173;
+    int credPort = 21173;
 
     int server_sock, client_sock, serverC_sock, serverEE_sock, serverCS_sock;
     struct sockaddr_in server_addr, client_addr, serverC_addr, serverEE_addr, serverCS_addr;
@@ -18,17 +21,17 @@ int main()
     char buffer[1024];
     int n;
 
-    //######################## UDP ############################//
+    //######################## CREATE and INITIALIZE UDP SOCKETS ############################//
     /// SERVERC SOCK//////
     serverC_sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (serverC_sock < 0)
     {
-        perror("[-]cred Socket error");
+        perror("cred Socket error");
         exit(1);
     }
     memset(&serverC_addr, '\0', sizeof(serverC_addr));
     serverC_addr.sin_family = AF_INET;
-    serverC_addr.sin_port = 21173;
+    serverC_addr.sin_port = credPort;
     serverC_addr.sin_addr.s_addr = inet_addr(ip);
 
     ////SERVER EE SOCKET/////
@@ -40,7 +43,7 @@ int main()
     }
     memset(&serverEE_addr, '\0', sizeof(serverEE_addr));
     serverEE_addr.sin_family = AF_INET;
-    serverEE_addr.sin_port = 23173;
+    serverEE_addr.sin_port = eePort;
     serverEE_addr.sin_addr.s_addr = inet_addr(ip);
 
     ////SERVER CS SOCKET/////
@@ -52,21 +55,20 @@ int main()
     }
     memset(&serverCS_addr, '\0', sizeof(serverCS_addr));
     serverCS_addr.sin_family = AF_INET;
-    serverCS_addr.sin_port = 22173;
+    serverCS_addr.sin_port = csPort;
     serverCS_addr.sin_addr.s_addr = inet_addr(ip);
 
-    //######################## TCP ############################//
+    //######################## TCP SOCKET ############################//
     server_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (server_sock < 0)
     {
         perror("[-]main server Socket error");
         exit(1);
     }
-    // printf("[+]TCP server socket created.\n");
 
     memset(&server_addr, '\0', sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = port;
+    server_addr.sin_port = portTCP;
     server_addr.sin_addr.s_addr = inet_addr(ip);
 
     n = bind(server_sock, (struct sockaddr *)&server_addr, sizeof(server_addr));
@@ -78,6 +80,8 @@ int main()
 
     printf("The main server is up and running.\n");
     listen(server_sock, 5);
+
+    //////############################### LISTENING.. and  READY TO RECEIVE DATA ###############################
     char username[100];
 
     while (1)
@@ -90,6 +94,8 @@ int main()
 
         while (count > 0 && !authenticated)
         {
+
+            /// Receive username from client
             bzero(buffer, 1024);
             recv(client_sock, buffer, sizeof(buffer), 0);
             if (strlen(buffer) <= 0)
@@ -99,7 +105,6 @@ int main()
             if (!strcmp(buffer, "PASS"))
             {
                 bzero(buffer, 1024);
-                // strcpy(buffer, userPass);
                 strcpy(buffer, "PASS");
                 sendto(serverC_sock, buffer, strlen(buffer), 0, (struct sockaddr *)&serverC_addr, sizeof(serverC_addr));
                 break;
@@ -109,7 +114,9 @@ int main()
             strcpy(user, buffer);
             strcpy(username, buffer);
 
-            printf("The main server received the authentication for %s using TCP over port %d.\n", user, port);
+            ////// ENCRYPTION STRATEGY
+
+            printf("The main server received the authentication for %s using TCP over port %d.\n", user, portTCP);
             for (int i = 0; i < sizeof(user); i++)
             {
                 char c = user[i];
@@ -131,21 +138,22 @@ int main()
                         val = val - 57 + 47;
                     }
                     user[i] = val;
-                    // printf("alphabet %c and encrypted %c\n", c, user[i]);
                 }
             }
-            // printf("User After - %s\n", user);
+
+            /// Asking for password from client
+
             bzero(buffer, 1024);
             strcpy(buffer, "Please enter the password: ");
-            // printf("Server: %s\n", buffer);
             send(client_sock, buffer, strlen(buffer), 0);
 
+            //// Receive password
             bzero(buffer, 1024);
             recv(client_sock, buffer, sizeof(buffer), 0);
             char passwd[strlen(buffer)];
             strcpy(passwd, buffer);
-            // printf("Pass - %s\n", passwd);
 
+            /// ENCRYPT PASSWORD
             for (int i = 0; i < sizeof(passwd); i++)
             {
                 char c = passwd[i];
@@ -170,19 +178,17 @@ int main()
                 }
             }
 
-            ///######################## send to Cred server ############################///
+            ///######## send to Cred server #########///
             bzero(buffer, 1024);
-            // strcpy(buffer, userPass);
             strcpy(buffer, user);
             sendto(serverC_sock, buffer, strlen(buffer), 0, (struct sockaddr *)&serverC_addr, sizeof(serverC_addr));
-            // sendto(sockfd, buffer, 1024, 0, (struct sockaddr*)&addr, sizeof(addr));
 
             bzero(buffer, 1024);
             strcpy(buffer, passwd);
             sendto(serverC_sock, buffer, strlen(buffer), 0, (struct sockaddr *)&serverC_addr, sizeof(serverC_addr));
             printf("The main server sent an authentication request to serverC.\n");
 
-            /// #################### check authorization ###################### ///
+            /// ######## check authorization ######### ///
             socklen_t add_size = sizeof(serverC_addr);
             bzero(buffer, 1024);
             recvfrom(serverC_sock, buffer, 1024, 0, (struct sockaddr *)&serverC_addr, &add_size);
@@ -195,76 +201,74 @@ int main()
             printf("The main server sent the authentication result to the client.\n");
         }
 
-        /// #################### GETTING COURSE DETAILS ###################### ///
+        /// ##################################### GETTING COURSE DETAILS ################################ ///
         char repeatCheck[100];
         strcpy(repeatCheck, "TRUE");
 
         while (1)
         {
-            printf("newwwwwww req..");
+            //// Receive new Request
+
             char returnResult[1000];
             strcpy(returnResult, "");
             bzero(buffer, 1024);
             recv(client_sock, buffer, sizeof(buffer), 0);
-            // printf("buffer isssss %s---%ld---\n", buffer, strlen(buffer));
 
+            /// check to see if the client is ready to send the details
             if (strlen(buffer) <= 0)
             {
-                printf("size less than 0\n");
                 break;
             }
             if (!strcmp(buffer, "FALSE"))
             {
-                printf("not ture\n");
                 break;
             }
             if (!strcmp(buffer, " "))
             {
                 break;
             }
-
-            // printf("After if stt ----");
-            //******** Authenticate
+            // authenticate
             bzero(buffer, 1024);
-
             strcpy(buffer, "ok");
-
             send(client_sock, buffer, strlen(buffer), 0);
 
-            //******* GETCOURSE
+            //******* GETCOURSE CODE ********//
             bzero(buffer, 1024);
             recv(client_sock, buffer, sizeof(buffer), 0);
-            // printf("%s", buffer);
+
             char course[strlen(buffer)];
             char crs[strlen(buffer)];
             strcpy(course, buffer);
-
             strcpy(crs, course);
 
             int field = 0;
             char allCode[100][100];
-
             char *token = strtok(crs, " ");
-
+            int num = 0;
+            int presentAlrdy = 0;
             while (token)
             {
-                strcpy(allCode[field++], token);
+                /////// check for duplicate entries and if it is a single entry or multiple entries
+                presentAlrdy = 0;
+                num = sizeof(allCode) / sizeof(allCode[0]);
+                for (int i = 0; i < field; i++)
+                {
+                    if (!strcmp(token, allCode[i]))
+                    {
+                        presentAlrdy = 1;
+                    }
+                }
+                if (presentAlrdy == 0)
+                {
+                    strcpy(allCode[field++], token);
+                }
                 token = strtok(NULL, " ");
             }
-            // printf("len of filed - %d\n", field);
 
             // ################################  IF SINGLE ENTRY ################################
             if (field < 2)
             {
-                // **** send Not multiple
                 char ctgry[100];
-                bzero(buffer, 1024);
-                strcpy(buffer, "NOT-MULTIPLE");
-                send(client_sock, buffer, strlen(buffer), 0);
-
-                // *** Authenticate
-                bzero(buffer, 1024);
-                recv(client_sock, buffer, sizeof(buffer), 0);
 
                 // ********* GET CATEGORY ***********
 
@@ -272,20 +276,19 @@ int main()
                 bzero(buffer, 1024);
                 strcpy(buffer, "Please enter the category (Credit / Professor / Days / CourseName): ");
                 send(client_sock, buffer, strlen(buffer), 0);
-                // ****** Authenticate
+
+                //  ****** Authenticate
                 bzero(buffer, 1024);
                 recv(client_sock, buffer, sizeof(buffer), 0);
 
                 strcpy(ctgry, buffer);
                 printf("The main server received from %s to query course %s about %s.\n", username, course, ctgry);
 
-                ////********** get dept
+                ////********** get deptartment
                 char dept[3];
                 size_t j;
                 for (j = 0; j < 2; j++)
                 {
-                    // course[i] = toupper(course[i]);
-                    // dept[i] = course[i];
                     course[j] = toupper(course[j]);
                     dept[j] = course[j];
                 }
@@ -322,8 +325,6 @@ int main()
                     strcpy(returnResult, buffer);
 
                     printf("The main server received the response from serverEE using UDP over port %d.\n", portUdp);
-                    // printf(" ----EE   %s ---- buffer\n", buffer);
-                    // printf(" ----EE  %s ---- returnResult ", returnResult);
                 }
                 else if (!strcmp(dept, "CS"))
                 {
@@ -336,9 +337,8 @@ int main()
 
                     // printf("sending to CS server\n");
 
-                    ///*************** send course
+                    ///*************** send course to ee server
                     bzero(buffer, 1024);
-                    // strcpy(buffer, userPass);
                     strcpy(buffer, course);
                     sendto(serverCS_sock, buffer, strlen(buffer), 0, (struct sockaddr *)&serverCS_addr, sizeof(serverCS_addr));
 
@@ -357,7 +357,7 @@ int main()
                 }
                 else
                 {
-                    printf("invalid dept\n");
+                    printf("Invalid dept\n");
                     strcpy(returnResult, "!Didn't find the course: ");
                     strcat(returnResult, course);
                 }
@@ -366,37 +366,9 @@ int main()
             else
             {
                 strcpy(returnResult, "");
-
-                // send(client_sock, field, 4, 0);
-                ///******** send Multiple to client
-                bzero(buffer, 1024);
-                strcpy(buffer, "MULTIPLE");
-                send(client_sock, buffer, strlen(buffer), 0);
-
-                if (field > 10)
+                for (int i = 0; i < field; i++) //// for the multiple code entries
                 {
-                    bzero(buffer, 1024);
-                    strcpy(buffer, "!More than 10 courses are queried not possible. Please enter less than 10 courseCodes to query at a time\n");
-                    send(client_sock, buffer, strlen(buffer), 0);
-                    // strcat(returnResult, "!More than 10 courses are queried not possible. Please enter less than 10 courseCodes to query at a time\n");
-                    break;
-                }
-                else
-                {
-                    bzero(buffer, 1024);
-                    strcpy(buffer, "ok");
-                    printf("sending okkkkkkk");
-                    send(client_sock, buffer, strlen(buffer), 0);
-                }
-                /// ****** Client Authenticate
-                bzero(buffer, 1024);
-                recv(client_sock, buffer, sizeof(buffer), 0);
-
-                // printf("here.. %s - --", allCode[1]);
-
-                for (int i = 0; i < field; i++)
-                {
-                    printf("%s ----", allCode[i]);
+                    // printf("%s ----", allCode[i]);
 
                     char dept[3];
                     size_t j;
@@ -407,11 +379,11 @@ int main()
                     }
                     dept[2] = '\0';
 
-                    printf("dept is %s\n", dept);
+                    // printf("dept is %s\n", dept);
 
                     if (!strcmp(dept, "EE"))
                     {
-                        ///######################## send to EE server ############################///
+                        ///################### send to EE server ###################///
                         /// *************** send multiple
                         bzero(buffer, 1024);
                         strcpy(buffer, "MULTIPLE");
@@ -427,7 +399,7 @@ int main()
                         socklen_t add_size = sizeof(serverEE_addr);
                         bzero(buffer, 1024);
                         recvfrom(serverEE_sock, buffer, 1024, 0, (struct sockaddr *)&serverEE_addr, &add_size);
-                        printf("%s\n", buffer);
+                        // printf("%s\n", buffer);
 
                         strcat(returnResult, buffer);
                         strcat(returnResult, "\n");
@@ -435,14 +407,13 @@ int main()
                     }
                     else if (!strcmp(dept, "CS"))
                     {
-                        printf("sending to CS server\n");
-                        ///######################## send to CS server ############################///
+                        ///################ send to CS server ################///
                         /// *************** send multiple
                         bzero(buffer, 1024);
                         strcpy(buffer, "MULTIPLE");
                         sendto(serverCS_sock, buffer, strlen(buffer), 0, (struct sockaddr *)&serverCS_addr, sizeof(serverCS_addr));
 
-                        /// *************** send course
+                        /// *************** send course code to CS servre
                         bzero(buffer, 1024);
                         strcpy(buffer, allCode[i]);
                         sendto(serverCS_sock, buffer, strlen(buffer), 0, (struct sockaddr *)&serverCS_addr, sizeof(serverCS_addr));
@@ -464,17 +435,18 @@ int main()
                     }
                 }
             }
+
+            /// send the result of query to the client
+
             bzero(buffer, 1024);
             strcpy(buffer, returnResult);
-            printf(" %s----  ", returnResult);
             send(client_sock, buffer, strlen(buffer), 0);
             printf("The main server sent the query information to the client.\n");
-
             printf("\n");
 
             /// ################### Close client socket ###################### ///
             // close(client_sock);
-            // printf("[+]Client disconnected.\n\n");
+            // printf("Client disconnected.\n\n");
         }
     }
 

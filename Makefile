@@ -1,20 +1,19 @@
 all: serverM.c serverC.c serverCS.c serverEE.c client.c
-		gcc -o sv serverM.c
-		gcc -o cred serverC.c
-		gcc -o cs serverCS.c
-		gcc -o ee serverEE.c
-		gcc -o cl client.c
+		gcc -o serverM serverM.c
+		gcc -o serverC serverC.c
+		gcc -o serverEE serverEE.c
+		gcc -o serverCS serverCS.c
+		gcc -o client client.c
 
-sv:
-		./sv
-cred:
-		./cred
-cs:
-		./cs
-ee:
-		./ee
-cl:
-		./cl
+serverM:
+		./serverM
+serverC:
+		./serverC
+serverEE:
+		./serverEE
+serverCS:
+		./serverCS
+client:
+		./client 
 
-.PHONY: sv cred cs ee cl
  

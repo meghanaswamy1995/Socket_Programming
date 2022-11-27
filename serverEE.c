@@ -5,11 +5,12 @@
 #include <arpa/inet.h>
 #include <ctype.h>
 
-#define MAX_LINES 100
-#define MAX_LEN 1000
+#define MAX_LINES 1000
+#define MAX_LEN 5000
 
 int main(void)
 {
+    //################# Reading the ee.txt file and storing all the entries into the datastructure #################
     FILE *file;
     char data[MAX_LINES][MAX_LEN];
     file = fopen("ee.txt", "r");
@@ -20,7 +21,7 @@ int main(void)
     }
     int line = 0;
     char *entry;
-    while (!feof(file) && !ferror(file))
+    while (!feof(file) && !ferror(file)) // read all the lines from the file and store it in an array data[]
     {
         if (fgets(data[line], MAX_LEN, file) != NULL)
             line++;
@@ -36,23 +37,20 @@ int main(void)
         {
             data[i][strlen(data[i]) - 2] = '\0';
         }
-        // printf("----printng all contenst :%s\n", data[i]);
         char info[500];
         strcpy(info, data[i]);
-
+        //// from data array copy all the different category in their respective array
         strcpy(code[i], strtok(info, ","));
         strcpy(credits[i], strtok(NULL, ","));
         strcpy(prof[i], strtok(NULL, ","));
         strcpy(time[i], strtok(NULL, ","));
         strcpy(name[i], strtok(NULL, ","));
     }
-    // for (int i = 0; i < line; i++)
-    // {
-    //     printf("%s | %s | %s |%s |%s \n", code[i], credits[i], prof[i], time[i], name[i]);
-    // }
+
+    ///  //################# Creating socket  #################
 
     char *ip = "127.0.0.1";
-    int port = 23173;
+    int eePort = 23173;
 
     int eeSock;
     struct sockaddr_in server_addr, client_addr;
@@ -66,11 +64,10 @@ int main(void)
         perror("[-]Socket error");
         exit(1);
     }
-    // printf("[+]UDP server socket created.\n");
 
     memset(&server_addr, '\0', sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = 23173;
+    server_addr.sin_port = eePort;
     server_addr.sin_addr.s_addr = inet_addr(ip);
 
     n = bind(eeSock, (struct sockaddr *)&server_addr, sizeof(server_addr));
@@ -79,33 +76,34 @@ int main(void)
         perror("[-]Bind error");
         exit(1);
     }
-    printf("The ServerEE is up and running using UDP on port %d.\n", port);
+    printf("The ServerEE is up and running using UDP on port %d.\n", eePort);
 
-    ////////////// READY TO RECEIVE DATA /////////////
+    /// //################# READY TO RECEIVE DATA #################
 
     while (1)
     {
         bzero(buffer, 1024);
         addr_size = sizeof(client_addr);
-        // printf("here..");
         recvfrom(eeSock, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_addr, &addr_size);
         char returnVal[100];
 
-        if (!strcmp(buffer, "MULTIPLE"))
+        if (!strcmp(buffer, "MULTIPLE")) // If multiple courses are queried
         {
+
             bzero(buffer, 1024);
             addr_size = sizeof(client_addr);
-            // printf("here..");
+            // Receeive course code
             recvfrom(eeSock, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_addr, &addr_size);
+
             char givenCode[100];
             int found = 0;
-
             strcpy(givenCode, buffer);
+            printf("The ServerEE received a request from the Main Server for the course %s.\n", givenCode);
+
             for (int i = 0; i < line; i++)
             {
-                if (!strcmp(givenCode, code[i]))
+                if (!strcmp(givenCode, code[i])) /// finding the course index
                 {
-                    // strcpy(returnVal, data[i]);
                     strcpy(returnVal, code[i]);
                     strcat(returnVal, ": ");
                     strcat(returnVal, credits[i]);
@@ -118,34 +116,39 @@ int main(void)
                     found = 1;
                 }
             }
-            if (found == 0)
+            if (found == 0) // if course not found
             {
                 printf("Didn't find the course: %s.\n", givenCode);
                 strcpy(returnVal, "Didn't find the course: ");
                 strcat(returnVal, givenCode);
             }
-            // printf("code received %s-\n", buffer);
+            else
+            {
+                printf("The course info has been found:\n %s\n", returnVal);
+            }
         }
-        else
+        else // if this course code is part of single course query
         {
             bzero(buffer, 1024);
             addr_size = sizeof(client_addr);
-            // printf("here..");
+
+            // Receeive course code
             recvfrom(eeSock, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_addr, &addr_size);
             char givenCode[100];
             strcpy(givenCode, buffer);
-            // printf("code received %s-\n", buffer);
 
+            // Receeive category
             bzero(buffer, 1024);
             recvfrom(eeSock, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_addr, &addr_size);
             char givenCtgry[100];
             strcpy(givenCtgry, buffer);
-            // printf("code received %s-\n", buffer);
+
             printf("The ServerEE received a request from the Main Server about the %s of %s.\n", givenCtgry, givenCode);
 
             int idx = -1;
             int cat = 1;
 
+            // finding out the index of the course from the codes array
             for (int i = 0; i < line; i++)
             {
                 if (!strcmp(givenCode, code[i]))
@@ -172,7 +175,7 @@ int main(void)
                 {
                     strcpy(returnVal, name[idx]);
                 }
-                else
+                else /// if the entered category is not found
                 {
                     cat = -1;
                     printf("Didn't find the category: %s.\n", givenCtgry);
@@ -180,7 +183,7 @@ int main(void)
                     strcat(returnVal, givenCtgry);
                 }
             }
-            else
+            else // if index is not greater or equal to zero then the course was not found
             {
                 printf("Didn't find the course: %s.\n", givenCode);
                 strcpy(returnVal, "!Didn't find the course: ");
@@ -191,9 +194,9 @@ int main(void)
                 printf("The course information has been found: The %s of %s is %s.\n", givenCtgry, givenCode, returnVal);
             }
         }
+        // send the query results to the main server
         bzero(buffer, 1024);
         strcpy(buffer, returnVal);
-        // printf("sending buffer %s\n", buffer);
         sendto(eeSock, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_addr, sizeof(client_addr));
         printf("The ServerEE finished sending the response to the Main Server.\n");
     }
