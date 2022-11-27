@@ -91,6 +91,11 @@
 
 6. Idiosyncrasies:
    Since the output format varies slightly for MULTIPLE and single queries. I have used a code to distinguish between the two all over my code. Many of the times in my code you can see messages being sent from serverM to all other servers saying "MULTIPLE" and "NOT-MULTIPLE", these messages are used to tell the respective server whether it a single request or a multiple request.
+   aprat from the onscreen messages given in the project document, my code prints:
+   a. an error statement if the category is not found
+   b. an error statement if the user exceeds more than 10 courses while querying multiple code
+   c. an error statemen and closes the socket if the 3 chances to authenticate is expired
+   d. the course information in CS/EE department server output when multiple course are queried, for all the courses.
 7. Reused code:
    1. Beej's Code: http://www.beej.us/guide/bgnet/ for TCP and UDP implementation
    2. Tutorials on Socket Programming Geeks for Geeks
